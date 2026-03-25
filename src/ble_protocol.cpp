@@ -75,6 +75,11 @@ class ServerCallbacks : public BLEServerCallbacks {
     setConnectionState(false);
     Serial.println("DEVICE DISCONNECTED");
     valveController_abortFromBleDisconnect();
+    
+    // CORREÇÃO: Adicionar delay antes de reiniciar o advertising
+    // O ESP32 Arduino BLE precisa de um tempo para limpar o estado interno
+    // antes de poder reiniciar o advertising com sucesso.
+    vTaskDelay(pdMS_TO_TICKS(500));
     bleProtocol_startAdvertising();
   }
 };

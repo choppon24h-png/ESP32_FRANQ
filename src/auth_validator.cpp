@@ -111,24 +111,13 @@ bool authValidator_validate(const String& token, const String& sessionId) {
     return false;
   }
 
-  // Validar timestamp (janela de tempo)
-  const uint32_t tokenTimestamp = (uint32_t)timestampStr.toInt();
-  const uint32_t nowSeconds = (uint32_t)(millis() / 1000UL);
-  // Nota: millis() reinicia no reboot. Para produção, usar NTP.
-  // Por ora, a janela de AUTH_TOKEN_VALID_MS é verificada em relação ao uptime.
-  // O app Android deve enviar o timestamp de criação do token em segundos.
-  // Se o token foi criado há mais de AUTH_TOKEN_VALID_MS/1000 segundos, rejeita.
-  // Tolerância: aceita tokens com até AUTH_TOKEN_VALID_MS ms de diferença.
-  const uint32_t tokenAgeMs = (nowSeconds > tokenTimestamp)
-                                   ? (nowSeconds - tokenTimestamp) * 1000UL
-                                   : 0UL;
-
-  if (tokenAgeMs > AUTH_TOKEN_VALID_MS) {
-    setError("token expirado");
-    Serial.printf("[AUTH] Token age: %lu ms, limite: %lu ms\n", tokenAgeMs, AUTH_TOKEN_VALID_MS);
-    return false;
-  }
-
+  // CORREÇÃO CRÍTICA: O Android e o ESP32 têm bases de tempo diferentes.
+  // O Android usa SystemClock.elapsedRealtime() (uptime do Android)
+  // O ESP32 usa millis() (uptime do ESP32)
+  // Como não há sincronização de relógio, não podemos validar a "idade" do token
+  // subtraindo os timestamps. A segurança é garantida pelo HMAC e pelo SESSION_ID único.
+  // Removemos a validação de tokenAgeMs para evitar falsos positivos de "token expirado".
+  
   // Recalcular HMAC esperado: HMAC(SESSION_ID + ":" + timestamp, SECRET_KEY)
   String message = sessionId + ":" + timestampStr;
   char expectedHmac[65] = {0};
@@ -147,8 +136,8 @@ bool authValidator_validate(const String& token, const String& sessionId) {
   }
 
   strncpy(s_lastError, "none", sizeof(s_lastError));
-  Serial.printf("[AUTH] Token válido. Session: %s, Age: %lu ms\n",
-                sessionId.c_str(), tokenAgeMs);
+  Serial.printf("[AUTH] Token válido. Session: %s, Timestamp: %s\n",
+                sessionId.c_str(), timestampStr.c_str());
   return true;
 }
 

@@ -18,6 +18,11 @@ struct OperationState {
   String sessionId;
   String currentCmdId;
   State state;
+  bool ready;
+  bool mtuAtualizado;
+  uint32_t readyAtMs;
+  uint32_t lastConnectMs;
+  uint32_t lastDisconnectMs;
 };
 
 struct ParsedCommand {
@@ -58,6 +63,11 @@ inline void opStateReset() {
     g_opState.sessionId = "";
     g_opState.currentCmdId = "";
     g_opState.state = IDLE;
+    g_opState.ready = false;
+    g_opState.mtuAtualizado = false;
+    g_opState.readyAtMs = 0;
+    g_opState.lastConnectMs = 0;
+    g_opState.lastDisconnectMs = 0;
     opStateUnlock();
   }
 }

@@ -91,6 +91,8 @@ bool authValidator_validate(const String& token, const String& sessionId) {
   // Formato esperado: "hmac_hex_64chars:timestamp_segundos"
   // Exemplo: "a3f2b1...64chars...:1711000000"
 
+  Serial.println(String("[AUTH] Token recebido (len=") + String(token.length()) + ")");
+
   if (token.length() < 67) {  // 64 (hmac) + 1 (:) + 1 (ts mínimo) + 1 = 67
     setError("token muito curto");
     return false;
@@ -105,6 +107,8 @@ bool authValidator_validate(const String& token, const String& sessionId) {
 
   String receivedHmac = token.substring(0, 64);
   String timestampStr = token.substring(65);
+
+  Serial.println(String("[AUTH] Timestamp recebido: ") + timestampStr);
 
   if (timestampStr.isEmpty()) {
     setError("timestamp ausente");
@@ -144,3 +148,4 @@ bool authValidator_validate(const String& token, const String& sessionId) {
 const char* authValidator_lastError() {
   return s_lastError;
 }
+

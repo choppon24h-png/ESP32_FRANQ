@@ -50,18 +50,52 @@ bool requireAuthenticatedSession() {
   return authorized;
 }
 
-// ── Handlers ─────────────────────────────────────────────────────────────
+bool requireReadyGuard(const ParsedCommand& command) {
+  uint32_t readyAtMs = 0;
+  bool ready = false;
+  bool mtuUpdated = false;
+  if (opStateLock()) {
+    ready = g_opState.ready;
+    mtuUpdated = g_opState.mtuAtualizado;
+    readyAtMs = g_opState.readyAtMs;
+    opStateUnlock();
+  }
+
+  if (!ready) {
+    Serial.printf("[READY] Aguardando READY. CMD=%s SESSION=%s\n",
+                  command.cmdId.c_str(), command.sessionId.c_str());
+    bleProtocol_send("ERROR:NOT_READY");
+    return false;
+  }
+
+  const uint32_t nowMs = millis();
+  const uint32_t delta = nowMs - readyAtMs;
+  Serial.printf("[READY] READY->SERVE: %lu ms | mtu=%s\n",
+                static_cast<unsigned long>(delta),
+                mtuUpdated ? "OK" : "NAO");
+
+  if (delta < BLE_READY_GUARD_MS) {
+    Serial.printf("[READY] Guard-band ativo (%lu ms < %lu ms)\n",
+                  static_cast<unsigned long>(delta),
+                  static_cast<unsigned long>(BLE_READY_GUARD_MS));
+    bleProtocol_send("ERROR:READY_WAIT");
+    return false;
+  }
+
+  return true;
+}
+// Ã¢â€â‚¬Ã¢â€â‚¬ Handlers Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 void handleAuth(const ParsedCommand& command) {
   if (command.param.length() < BLE_AUTH_TOKEN_MIN_LEN || command.sessionId.isEmpty()) {
-    Serial.println("[AUTH] Formato inválido");
+    Serial.println("[AUTH] Formato invÃƒÂ¡lido");
     bleProtocol_send("ERROR:INVALID_AUTH");
     return;
   }
 
-  // Validação HMAC-SHA256 do token
+  // ValidaÃƒÂ§ÃƒÂ£o HMAC-SHA256 do token
   if (!authValidator_validate(command.param, command.sessionId)) {
-    Serial.printf("[AUTH] Token inválido: %s\n", authValidator_lastError());
+    Serial.printf("[AUTH] Token invÃƒÂ¡lido: %s\n", authValidator_lastError());
     bleProtocol_send(String("ERROR:INVALID_TOKEN|") + authValidator_lastError());
     return;
   }
@@ -71,6 +105,8 @@ void handleAuth(const ParsedCommand& command) {
   g_opState.sessionId = command.sessionId;
   g_opState.currentCmdId = "";
   g_opState.state = IDLE;
+  g_opState.ready = true;
+  g_opState.readyAtMs = millis();
   opStateUnlock();
 
   Serial.printf("[AUTH] Autenticado. Session: %s\n", command.sessionId.c_str());
@@ -80,6 +116,36 @@ void handleAuth(const ParsedCommand& command) {
 void handlePing(const ParsedCommand& command) {
   (void)command.sessionId;
   bleProtocol_send(String("PONG|") + command.cmdId);
+}
+
+void handleReady(const ParsedCommand& command) {
+  if (!isAuthenticated()) {
+    bleProtocol_send("ERROR:NOT_AUTHENTICATED");
+    return;
+  }
+
+  if (hasActiveSessionMismatch(command)) {
+    Serial.printf("[SEC] Session mismatch CMD_ID=%s\n", command.cmdId.c_str());
+    bleProtocol_send("ERROR:SESSION_MISMATCH");
+    return;
+  }
+
+  uint32_t sinceConnect = 0;
+  bool mtuUpdated = false;
+  if (opStateLock()) {
+    g_opState.ready = true;
+    g_opState.readyAtMs = millis();
+    mtuUpdated = g_opState.mtuAtualizado;
+    if (g_opState.lastConnectMs > 0) {
+      sinceConnect = g_opState.readyAtMs - g_opState.lastConnectMs;
+    }
+    opStateUnlock();
+  }
+
+  Serial.printf("[READY] OK | since_connect=%lu ms | mtu=%s\n",
+                static_cast<unsigned long>(sinceConnect),
+                mtuUpdated ? "OK" : "NAO");
+  bleProtocol_send(makeReply("READY_OK", command.cmdId, command.sessionId));
 }
 
 bool handleServeDuplicate(const ParsedCommand& command) {
@@ -95,7 +161,7 @@ bool handleServeDuplicate(const ParsedCommand& command) {
   }
 
   if (prior.done) {
-    Serial.println("[DUP] Resultado reaproveitado do histórico persistente");
+    Serial.println("[DUP] Resultado reaproveitado do histÃƒÂ³rico persistente");
     bleProtocol_send(makeDoneReply(command.cmdId, prior.mlReal, String(prior.sessionId)));
     return true;
   }
@@ -108,6 +174,10 @@ void handleServe(const ParsedCommand& command) {
   if (hasActiveSessionMismatch(command)) {
     Serial.printf("[SEC] Session mismatch CMD_ID=%s\n", command.cmdId.c_str());
     bleProtocol_send("ERROR:SESSION_MISMATCH");
+    return;
+  }
+
+  if (!requireReadyGuard(command)) {
     return;
   }
 
@@ -190,7 +260,7 @@ bool commandParser_parse(const String& rawCommand, ParsedCommand& parsed) {
     parsed.param = parts[1];
     parsed.cmdId = parts[2];
     parsed.sessionId = parts[3];
-  } else if (parsed.name == "PING" || parsed.name == "STOP") {
+  } else if (parsed.name == "PING" || parsed.name == "STOP" || parsed.name == "READY") {
     if (partCount != 3) return false;
     parsed.cmdId = parts[1];
     parsed.sessionId = parts[2];
@@ -214,13 +284,14 @@ void taskCommandProcessor(void* param) {
 
     ParsedCommand command;
     if (!commandParser_parse(rawCommand, command)) {
-      Serial.printf("[CMD] Formato inválido: %s\n", rawCommand.c_str());
+      Serial.printf("[CMD] Formato invÃƒÂ¡lido: %s\n", rawCommand.c_str());
       bleProtocol_send("ERROR:INVALID_FORMAT");
       continue;
     }
 
     if (command.name == "SERVE" && handleServeDuplicate(command)) continue;
     if (command.name == "AUTH") { handleAuth(command); continue; }
+    if (command.name == "READY") { handleReady(command); continue; }
     if (command.name == "PING") { handlePing(command); continue; }
     if (!requireAuthenticatedSession()) continue;
 
@@ -229,3 +300,11 @@ void taskCommandProcessor(void* param) {
     else bleProtocol_send("ERROR:UNKNOWN_COMMAND");
   }
 }
+
+
+
+
+
+
+
+

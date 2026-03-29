@@ -4,6 +4,7 @@
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
+#include <esp_gatts_api.h>
 #include <esp_mac.h>
 
 #include "command_queue.h"
@@ -24,6 +25,11 @@ SemaphoreHandle_t g_bleTxMutex = nullptr;
 String g_deviceName;
 uint32_t g_lastAdvertisingStart = 0;
 bool g_initialized = false;
+uint32_t g_lastTxMs = 0;
+uint32_t g_advBackoffMs = BLE_ADV_BACKOFF_START_MS;
+uint32_t g_nextAdvertiseMs = 0;
+bool g_advPending = false;
+bool g_resumeSessionOnConnect = false;
 
 void setConnectionState(bool connected) {
   if (!opStateLock()) {
@@ -31,12 +37,30 @@ void setConnectionState(bool connected) {
   }
   g_opState.bleConectado = connected;
   if (!connected) {
-    g_opState.autenticado = false;
-    g_opState.sessionId = "";
-    g_opState.currentCmdId = "";
-    if (g_opState.state != RUNNING) {
+    g_opState.lastDisconnectMs = millis();
+    if (g_opState.state == RUNNING) {
+      g_resumeSessionOnConnect = true;
+    } else {
+      g_opState.autenticado = false;
+      g_opState.sessionId = "";
+      g_opState.currentCmdId = "";
       g_opState.state = IDLE;
+      g_opState.ready = false;
+      g_opState.mtuAtualizado = false;
+      g_opState.readyAtMs = 0;
+      g_resumeSessionOnConnect = false;
     }
+  } else {
+    g_opState.lastConnectMs = millis();
+    if (g_resumeSessionOnConnect && g_opState.state == RUNNING) {
+      g_opState.ready = true;
+      g_opState.readyAtMs = g_opState.lastConnectMs;
+    } else {
+      g_opState.ready = false;
+      g_opState.readyAtMs = 0;
+      g_opState.mtuAtualizado = false;
+    }
+    g_resumeSessionOnConnect = false;
   }
   opStateUnlock();
 }
@@ -67,20 +91,62 @@ class ServerCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer* server) override {
     (void)server;
     setConnectionState(true);
+    g_advBackoffMs = BLE_ADV_BACKOFF_START_MS;
+    g_advPending = false;
     Serial.println("DEVICE CONNECTED");
+  }
+
+  void onConnect(BLEServer* server, esp_ble_gatts_cb_param_t* param) {
+    (void)param;
+    onConnect(server);
   }
 
   void onDisconnect(BLEServer* server) override {
     (void)server;
     setConnectionState(false);
-    Serial.println("DEVICE DISCONNECTED");
+    uint32_t sinceConnect = 0;
+    uint32_t sinceReady = 0;
+    bool hadReady = false;
+    if (opStateLock()) {
+      if (g_opState.lastConnectMs > 0) {
+        sinceConnect = millis() - g_opState.lastConnectMs;
+      }
+      if (g_opState.ready) {
+        hadReady = true;
+        sinceReady = millis() - g_opState.readyAtMs;
+      }
+      opStateUnlock();
+    }
+
+    Serial.printf("DEVICE DISCONNECTED | since_connect=%lu ms%s\n",
+                  static_cast<unsigned long>(sinceConnect),
+                  hadReady ? String(" | since_ready=" + String(sinceReady) + " ms").c_str() : "");
     valveController_abortFromBleDisconnect();
-    
-    // CORREÇÃO: Adicionar delay antes de reiniciar o advertising
-    // O ESP32 Arduino BLE precisa de um tempo para limpar o estado interno
-    // antes de poder reiniciar o advertising com sucesso.
-    vTaskDelay(pdMS_TO_TICKS(500));
-    bleProtocol_startAdvertising();
+
+    g_nextAdvertiseMs = millis() + g_advBackoffMs;
+    g_advPending = true;
+    g_advBackoffMs = (g_advBackoffMs < BLE_ADV_BACKOFF_MAX_MS)
+        ? min(g_advBackoffMs * 2UL, BLE_ADV_BACKOFF_MAX_MS)
+        : BLE_ADV_BACKOFF_MAX_MS;
+  }
+
+  void onDisconnect(BLEServer* server, esp_ble_gatts_cb_param_t* param) {
+    if (param) {
+      Serial.printf("GATT DISCONNECT reason=0x%02X\n", param->disconnect.reason);
+    } else {
+      Serial.println("GATT DISCONNECT reason=UNKNOWN");
+    }
+    onDisconnect(server);
+  }
+
+  void onMtuChanged(BLEServer* server, esp_ble_gatts_cb_param_t* param) override {
+    (void)server;
+    uint16_t mtu = param ? param->mtu.mtu : 0;
+    if (opStateLock()) {
+      g_opState.mtuAtualizado = true;
+      opStateUnlock();
+    }
+    Serial.printf("MTU CHANGED: %u\n", mtu);
   }
 };
 
@@ -164,9 +230,15 @@ void bleProtocol_send(const String& payload) {
     return;
   }
 
+  const uint32_t nowMs = millis();
+  if (nowMs - g_lastTxMs < BLE_GATT_TX_GUARD_MS) {
+    vTaskDelay(pdMS_TO_TICKS(BLE_GATT_TX_GUARD_MS - (nowMs - g_lastTxMs)));
+  }
+
   Serial.printf("TX: %s\n", payload.c_str());
   g_txCharacteristic->setValue(payload.c_str());
   g_txCharacteristic->notify();
+  g_lastTxMs = millis();
   xSemaphoreGive(g_bleTxMutex);
 }
 
@@ -187,6 +259,7 @@ void bleProtocol_startAdvertising() {
 
   g_advertising->start();
   g_lastAdvertisingStart = millis();
+  g_advPending = false;
 }
 
 void bleProtocol_restartAdvertisingIfNeeded() {
@@ -201,6 +274,15 @@ void bleProtocol_restartAdvertisingIfNeeded() {
   const bool connected = g_opState.bleConectado;
   opStateUnlock();
   if (connected) {
+    return;
+  }
+
+  if (g_advPending) {
+    if (millis() >= g_nextAdvertiseMs) {
+      g_advertising->start();
+      g_lastAdvertisingStart = millis();
+      g_advPending = false;
+    }
     return;
   }
 
@@ -228,6 +310,10 @@ void taskBLE(void* param) {
   bleProtocol_init();
 
   for (;;) {
+    bleProtocol_restartAdvertisingIfNeeded();
     vTaskDelay(pdMS_TO_TICKS(250));
   }
 }
+
+
+

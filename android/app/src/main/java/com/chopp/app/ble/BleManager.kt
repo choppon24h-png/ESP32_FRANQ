@@ -57,7 +57,7 @@ class BleManager(private val context: Context) {
 
         // Chave secreta HMAC — deve ser idêntica ao AUTH_SECRET_KEY do firmware
         // IMPORTANTE: em produção, obter esta chave via backend seguro (ex: HTTPS + certificado)
-        private const val AUTH_SECRET_KEY = "CHOPP_FRANQUIA_SECRET_2024_v2"
+        private const val AUTH_SECRET_KEY = "Choppon103614@"
 
         // Tempo máximo de scan
         private const val SCAN_PERIOD_MS = 10_000L

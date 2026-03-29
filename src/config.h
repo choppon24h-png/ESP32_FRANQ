@@ -35,6 +35,10 @@
 // CONFIGURAÇÕES DE TEMPO
 // ============================================================
 #define BLE_WATCHDOG_RESTART_MS    10000UL
+#define BLE_READY_GUARD_MS         900UL   // 800-1000ms de guard-band apÃ³s READY
+#define BLE_GATT_TX_GUARD_MS       30UL    // espaÃ§amento mÃ­nimo entre notifies
+#define BLE_ADV_BACKOFF_START_MS   500UL
+#define BLE_ADV_BACKOFF_MAX_MS     5000UL
 #define DISPENSE_LOOP_DELAY_MS     20UL
 #define DISPENSE_TIMEOUT_MS        30000UL  // 30s máximo de segurança
 #define DISPENSE_TIME_FOR_300ML_MS 2000UL   // Fallback se sensor falhar
@@ -45,7 +49,7 @@
 // Chave secreta compartilhada entre firmware e app Android.
 // O Android gera HMAC-SHA256(SESSION_ID + timestamp, AUTH_SECRET_KEY).
 // IMPORTANTE: altere esta chave em cada franquia para segurança máxima.
-#define AUTH_SECRET_KEY     "CHOPP_FRANQUIA_SECRET_2024_v2"
+#define AUTH_SECRET_KEY     "Choppon103614@"
 #define AUTH_TOKEN_VALID_MS 300000UL  // Token válido por 5 minutos
 
 // ============================================================

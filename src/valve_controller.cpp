@@ -133,26 +133,27 @@ void valveController_stop(const String& cmdId, const String& sessionId) {
 }
 
 void valveController_abortFromBleDisconnect() {
+  bool running = false;
   if (xSemaphoreTake(g_dispenseMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
-    if (g_running) {
-      g_request.stopRequested = true;
-      g_request.abortRequested = true;
-    }
+    running = g_running;
     xSemaphoreGive(g_dispenseMutex);
+  }
+
+  if (running) {
+    Serial.println("[VALVE] BLE disconnect durante SERVE — mantendo sessao ativa");
+    return;
   }
 
   if (opStateLock()) {
     if (g_opState.state == RUNNING) {
-      g_opState.state = IDLE;
-      g_opState.currentCmdId = "";
-      g_opState.sessionId = "";
+      resetOperationalStateLocked();
     }
     opStateUnlock();
   }
 
   fecharValvula();
   flowSensor_disable();
-  Serial.println("[VALVE] BLE_ABORT — válvula fechada por desconexão");
+  Serial.println("[VALVE] BLE abort — válvula fechada por desconexão");
 }
 
 bool valveController_isRunning() {
@@ -247,3 +248,4 @@ void taskDispensacao(void* param) {
     finalizeDispense(local, actualMl, !abortedByDisconnect);
   }
 }
+

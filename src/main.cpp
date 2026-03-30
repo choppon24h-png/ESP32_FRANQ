@@ -1,4 +1,4 @@
-#include <Arduino.h>
+﻿#include <Arduino.h>
 
 #include "auth_validator.h"
 #include "ble_protocol.h"
@@ -41,11 +41,14 @@ void printBanner() {
   Serial.println();
   Serial.println("========================================");
   Serial.printf("  CHOPP FRANQUIA - Firmware v%s\n", FW_VERSION);
+  Serial.printf("  Build: %s %s\n", FW_BUILD_DATE, FW_BUILD_TIME);
   Serial.println("  ESP32 BLE Controller");
   Serial.println("========================================");
   Serial.printf("  Pino Rele: %d | Pino Sensor: %d\n", PINO_RELE, PINO_SENSOR_FLUSO);
   Serial.printf("  Pulsos/Litro: %d | Timeout: %lu ms\n",
                 FLOW_PULSOS_POR_LITRO, DISPENSE_TIMEOUT_MS);
+  Serial.printf("  Min.abertura: %lu ms\n", FLOW_MIN_OPEN_MS);
+  Serial.printf("  Timeout flux: %lu ms\n", FLOW_NO_PULSE_TIMEOUT_MS);
   Serial.println("========================================");
   Serial.println();
 }
@@ -65,9 +68,9 @@ void setup() {
   initPins();
   opStateReset();
 
-  // Inicializar módulos em ordem
+  // Inicializar mÃ³dulos em ordem
   authValidator_init();
-  cmdHistory_init();    // Carrega histórico persistido da Flash (NVS)
+  cmdHistory_init();    // Carrega histÃ³rico persistido da Flash (NVS)
   cmdQueue_init();
   valveController_init();  // Inclui flowSensor_init()
   watchdog_init();
@@ -82,7 +85,7 @@ void setup() {
 #endif
   createTaskCompat(watchdogTask,         "taskWatchdog", 4096, nullptr, 2, nullptr, 0);
 
-  Serial.println("[BOOT] Sistema inicializado. Aguardando conexao BLE...");
+  Serial.printf("[BOOT] v%s inicializado. Aguardando conexao BLE...\\n", FW_VERSION);
 }
 
 void loop() {
@@ -92,3 +95,4 @@ void loop() {
   digitalWrite(PINO_STATUS, !LED_STATUS_ON);
   vTaskDelay(pdMS_TO_TICKS(920));
 }
+

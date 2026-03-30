@@ -46,7 +46,7 @@ public class CommandQueueManager {
     /** Timeout para receber ACK após envio (ms). Firmware garante ACK em < 100ms. */
     private static final long ACK_TIMEOUT_MS  = 5_000L;
     /** Timeout para receber DONE após ACK (ms). Operação máxima: 10s no firmware. */
-    private static final long DONE_TIMEOUT_MS = 15_000L;
+    private static final long DONE_TIMEOUT_MS = 45_000L;
 
     // ── Estado interno ────────────────────────────────────────────────────────
     private final Queue<BleCommand> mQueue   = new LinkedList<>();
@@ -216,10 +216,13 @@ public class CommandQueueManager {
         Log.w(TAG, "[BLE_CMD] BLE desconectado — pausando fila | ativo=" + mActive);
         mPaused = true;
         cancelAllTimeouts();
-        // Não remove o comando ativo — será reenviado na reconexão
-        if (mActive != null && mActive.state == BleCommand.State.SENT) {
-            mActive.state = BleCommand.State.QUEUED; // Volta para QUEUED para reenvio
-            Log.i(TAG, "[BLE_CMD] retry → " + mActive.commandId + " (mesmo ID para deduplicação)");
+        if (mActive != null &&
+                (mActive.state == BleCommand.State.SENT ||
+                 mActive.state == BleCommand.State.ACKED)) {
+            mActive.state = BleCommand.State.QUEUED;
+            Log.i(TAG, "[BLE_CMD] retry → " + mActive.commandId
+                    + " state=" + mActive.state
+                    + " (mesmo ID para deduplicação no ESP32)");
         }
     }
 

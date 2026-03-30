@@ -1,4 +1,4 @@
-#include "valve_controller.h"
+﻿#include "valve_controller.h"
 
 #include "ble_protocol.h"
 #include "command_history.h"
@@ -140,7 +140,7 @@ void valveController_abortFromBleDisconnect() {
   }
 
   if (running) {
-    Serial.println("[VALVE] BLE disconnect durante SERVE — mantendo sessao ativa");
+    Serial.println("[VALVE] BLE disconnect durante SERVE â€” mantendo sessao ativa");
     return;
   }
 
@@ -153,7 +153,7 @@ void valveController_abortFromBleDisconnect() {
 
   fecharValvula();
   flowSensor_disable();
-  Serial.println("[VALVE] BLE abort — válvula fechada por desconexão");
+  Serial.println("[VALVE] BLE abort â€” vÃ¡lvula fechada por desconexÃ£o");
 }
 
 bool valveController_isRunning() {
@@ -178,14 +178,14 @@ void taskDispensacao(void* param) {
     local = g_request;
     xSemaphoreGive(g_dispenseMutex);
 
-    Serial.printf("[VALVE] SERVE_START — alvo: %u ml\n", local.targetMl);
+    Serial.printf("[VALVE] SERVE_START â€” alvo: %u ml\n", local.targetMl);
 
     // Habilitar sensor de fluxo
     flowSensor_enable();
     const uint32_t alvoPulsos = flowSensor_calcularAlvo(local.targetMl);
     Serial.printf("[FLOW] Alvo: %u pulsos (%u ml)\n", alvoPulsos, local.targetMl);
 
-    // Timeout de segurança = 3x o tempo esperado, limitado ao máximo
+    // Timeout de seguranÃ§a = 3x o tempo esperado, limitado ao mÃ¡ximo
     const uint32_t expectedMs = (local.targetMl > 0)
         ? (uint32_t)((uint64_t)local.targetMl * DISPENSE_TIME_FOR_300ML_MS / 300ULL) * 3UL
         : DISPENSE_TIMEOUT_MS;
@@ -197,7 +197,7 @@ void taskDispensacao(void* param) {
     bool abortedByDisconnect = false;
     bool flowTimeout = false;
 
-    // Loop principal de dispensação por sensor de fluxo
+    // Loop principal de dispensaÃ§Ã£o por sensor de fluxo
     while (true) {
       vTaskDelay(pdMS_TO_TICKS(DISPENSE_LOOP_DELAY_MS));
 
@@ -217,16 +217,19 @@ void taskDispensacao(void* param) {
         break;
       }
 
-      // Timeout de segurança absoluto
+      // Timeout de seguranÃ§a absoluto
       if ((millis() - startMs) >= safeTimeout) {
         actualMl = flowSensor_getMl();
-        Serial.printf("[VALVE] Timeout de segurança. Dispensado: %u ml\n", actualMl);
+        Serial.printf("[VALVE] Timeout de seguranÃ§a. Dispensado: %u ml\n", actualMl);
         break;
       }
 
       // Timeout de fluxo: sensor parou de pulsar (barril vazio ou entupimento)
-      // Só verifica após os primeiros pulsos (para não disparar no início)
-      if (flowSensor_getPulsos() > 5 && flowSensor_isTimeout()) {
+      // FIX: Só verifica timeout APÓS 10s de válvula aberta E após pulsos reais.
+      // Isso dá tempo para pressurização inicial da tubulação de chopp.
+      const uint32_t elapsedMs = millis() - startMs;
+      const bool passedMinOpenTime = (elapsedMs >= FLOW_MIN_OPEN_MS);
+      if (passedMinOpenTime && flowSensor_getPulsos() > 5 && flowSensor_isTimeout()) {
         actualMl = flowSensor_getMl();
         flowTimeout = true;
         Serial.printf("[FLOW] Timeout de fluxo — barril vazio? Dispensado: %u ml\n", actualMl);
@@ -248,4 +251,5 @@ void taskDispensacao(void* param) {
     finalizeDispense(local, actualMl, !abortedByDisconnect);
   }
 }
+
 

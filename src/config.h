@@ -14,7 +14,8 @@
 //   2.3.0 - FIX: taskBLE/taskCmdProc prio 5 > taskDispensacao prio 3
 //           FIX: DISPENSE_LOOP_DELAY_MS 50ms->100ms + yield duplo
 //           FIX: log periódico de status da válvula a cada 5s
-#define FW_VERSION    "2.3.0"
+//   2.3.1 - FIX: Reduzido timeout de fluxo para 3s e tempo mínimo de abertura para 2s.
+#define FW_VERSION    "2.3.1"
 #define FW_BUILD_DATE __DATE__
 #define FW_BUILD_TIME __TIME__
 
@@ -61,8 +62,8 @@
 // ============================================================
 // CONFIGURACOES DO SENSOR DE FLUXO
 // ============================================================
-#define FLOW_NO_PULSE_TIMEOUT_MS   10000UL  // v2.1.0 FIX: era 3000UL
-#define FLOW_MIN_OPEN_MS           10000UL  // v2.1.0 NOVO: 10s minimo aberta antes de checar sensor
+#define FLOW_NO_PULSE_TIMEOUT_MS   3000UL  // v2.1.0 FIX: era 3000UL
+#define FLOW_MIN_OPEN_MS           2000UL  // v2.3.1 FIX: 2s minimo aberta antes de checar sensor
 #define FLOW_PULSOS_POR_LITRO      450
 
 // ============================================================

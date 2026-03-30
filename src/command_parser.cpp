@@ -220,7 +220,12 @@ void handleServe(const ParsedCommand& command) {
     return;
   }
 
-  // v2.1.0 FIX: abrirValvula() ANTES de markPending.\r\n  // taskDispensacao (prio 4) inicia imediatamente apos startDispensacao().\r\n  // Valvula deve estar aberta antes do loop de fluxo comecar a contar pulsos.\r\n  abrirValvula();\r\n  cmdHistory_markPending(command.cmdId, command.sessionId);\r\n  bleProtocol_send(String("ACK|") + command.cmdId);
+    // v2.1.0 FIX: abrirValvula() ANTES de markPending.
+  // taskDispensacao (prio 4) inicia imediatamente apos startDispensacao().
+  // Valvula deve estar aberta antes do loop de fluxo comecar a contar pulsos.
+  abrirValvula();
+  cmdHistory_markPending(command.cmdId, command.sessionId);
+  bleProtocol_send(String("ACK|") + command.cmdId);
 
   Serial.printf("[SERVE] Iniciado: %u ml | CMD: %s | SESSION: %s\n",
                 requestedMl, command.cmdId.c_str(), command.sessionId.c_str());
@@ -305,6 +310,7 @@ void taskCommandProcessor(void* param) {
     else bleProtocol_send("ERROR:UNKNOWN_COMMAND");
   }
 }
+
 
 
 

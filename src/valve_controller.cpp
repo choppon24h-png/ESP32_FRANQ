@@ -201,6 +201,7 @@ void taskDispensacao(void* param) {
     while (true) {
       vTaskDelay(pdMS_TO_TICKS(DISPENSE_LOOP_DELAY_MS));
       taskYIELD();  // v2.2.0: cede CPU ao BLE stack no C3 single-core
+      taskYIELD();  // v2.3.0: yield duplo garante que taskBLE/taskCmdProc rodem
 
       if (xSemaphoreTake(g_dispenseMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
         stopped = g_request.stopRequested;
@@ -218,17 +219,30 @@ void taskDispensacao(void* param) {
         break;
       }
 
-      // Timeout de seguranÃ§a absoluto
+      // Timeout de seguranca absoluto
       if ((millis() - startMs) >= safeTimeout) {
         actualMl = flowSensor_getMl();
-        Serial.printf("[VALVE] Timeout de seguranÃ§a. Dispensado: %u ml\n", actualMl);
+        Serial.printf("[VALVE] Timeout de seguranca. Dispensado: %u ml\n", actualMl);
         break;
       }
 
       // v2.1.0 FIX: so verifica timeout de fluxo APOS FLOW_MIN_OPEN_MS (10s).
       // Garante tempo de pressurizacao da tubulacao antes de considerar
       // que o barril esta vazio ou ha entupimento.
+      // v2.3.0 NOVO: log periodico de status a cada 5s para diagnostico
       const uint32_t elapsedMs = millis() - startMs;
+      static uint32_t lastStatusLog = 0;
+      if ((millis() - lastStatusLog) >= 5000UL) {
+        lastStatusLog = millis();
+        const uint32_t currentMl_log = flowSensor_getMl();
+        const uint32_t pulsos_log = flowSensor_getPulsos();
+        Serial.printf("[VALVE] STATUS elapsed=%lums ml=%u/%u pulsos=%u\n",
+                      (unsigned long)elapsedMs, currentMl_log, local.targetMl, pulsos_log);
+        if (bleProtocol_isConnected()) {
+          bleProtocol_send(String("VP:") + String(currentMl_log) + "|" + String(local.targetMl));
+        }
+      }
+
       if (elapsedMs >= FLOW_MIN_OPEN_MS && flowSensor_getPulsos() > 5 && flowSensor_isTimeout()) {
         actualMl = flowSensor_getMl();
         flowTimeout = true;

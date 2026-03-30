@@ -76,12 +76,16 @@ void setup() {
   watchdog_init();
 
   // Criar tasks FreeRTOS
-  createTaskCompat(taskBLE,              "taskBLE",      6144, nullptr, 3, nullptr, 0);
-  createTaskCompat(taskCommandProcessor, "taskCmdProc",  6144, nullptr, 3, nullptr, 0);
+  // v2.3.0 FIX: no C3 single-core, taskBLE e taskCommandProcessor DEVEM ter
+  // prio MAIOR que taskDispensacao. Sem isso, enquanto a válvula está aberta,
+  // o SERVE não consegue ser processado → ACK não sai → timeout → status=133.
+  // Prioridades: taskBLE=5, taskCmdProc=5 > taskDispensacao=3, taskWatchdog=2
+  createTaskCompat(taskBLE,              "taskBLE",      6144, nullptr, 5, nullptr, 0);
+  createTaskCompat(taskCommandProcessor, "taskCmdProc",  6144, nullptr, 5, nullptr, 0);
 #if portNUM_PROCESSORS > 1
-  createTaskCompat(taskDispensacao,      "taskDispensa", 6144, nullptr, 4, nullptr, 1);
+  createTaskCompat(taskDispensacao,      "taskDispensa", 6144, nullptr, 3, nullptr, 1);
 #else
-  createTaskCompat(taskDispensacao,      "taskDispensa", 6144, nullptr, 4, nullptr, 0);
+  createTaskCompat(taskDispensacao,      "taskDispensa", 6144, nullptr, 3, nullptr, 0);
 #endif
   createTaskCompat(watchdogTask,         "taskWatchdog", 4096, nullptr, 2, nullptr, 0);
 

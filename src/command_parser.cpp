@@ -20,6 +20,11 @@ String makeDoneReply(const String& cmdId, uint32_t mlReal, const String& session
   return String("DONE|") + cmdId + "|" + String(mlReal) + "|" + sessionId;
 }
 
+bool isLocalSession(const String& sessionId) {
+  return !sessionId.isEmpty() &&
+         (sessionId.startsWith("SES_LOCAL_") || sessionId.startsWith("LOCAL_"));
+}
+
 bool isSessionMismatch(const ParsedCommand& command, const HistoryEntry& entry) {
   return entry.occupied && !command.sessionId.equals(String(entry.sessionId));
 }
@@ -38,10 +43,30 @@ bool hasActiveSessionMismatch(const ParsedCommand& command) {
   if (opStateLock()) {
     mismatch = (g_opState.state == RUNNING &&
                 !g_opState.sessionId.isEmpty() &&
-                g_opState.sessionId != command.sessionId);
+                g_opState.sessionId != command.sessionId &&
+                !isLocalSession(g_opState.sessionId) &&
+                !isLocalSession(command.sessionId));
     opStateUnlock();
   }
   return mismatch;
+}
+
+bool canAcceptSession(const ParsedCommand& command) {
+  bool allowed = false;
+  if (!opStateLock()) return false;
+
+  if (g_opState.sessionId.isEmpty()) {
+    allowed = true;
+  } else if (g_opState.sessionId == command.sessionId) {
+    allowed = true;
+  } else if (isLocalSession(command.sessionId) || isLocalSession(g_opState.sessionId)) {
+    allowed = true;
+  } else if (g_opState.state != RUNNING) {
+    allowed = true;
+  }
+
+  opStateUnlock();
+  return allowed;
 }
 
 bool requireAuthenticatedSession() {
@@ -106,8 +131,8 @@ void handleAuth(const ParsedCommand& command) {
   g_opState.sessionId = command.sessionId;
   g_opState.currentCmdId = "";
   g_opState.state = IDLE;
-  g_opState.ready = true;
-  g_opState.readyAtMs = millis();
+  g_opState.ready = false;
+  g_opState.readyAtMs = 0;
   opStateUnlock();
 
   Serial.printf("[AUTH] v%s Autenticado. Session: %s\n",
@@ -129,11 +154,24 @@ void handleReady(const ParsedCommand& command) {
     return;
   }
 
-  if (hasActiveSessionMismatch(command)) {
-    Serial.printf("[SEC] Session mismatch CMD_ID=%s\n", command.cmdId.c_str());
-    bleProtocol_send("ERROR:SESSION_MISMATCH");
-    return;
+  if (!canAcceptSession(command)) {
+    String currentSession;
+    if (opStateLock()) {
+      currentSession = g_opState.sessionId;
+      opStateUnlock();
+    }
+    Serial.printf("[SEC] Session mismatch com estado ativo. CMD_ID=%s CURRENT=%s REQUEST=%s\n",
+                  command.cmdId.c_str(), currentSession.c_str(), command.sessionId.c_str());
+    bleProtocol_send("WARN:SESSION_MISMATCH");
   }
+
+  if (!opStateLock()) { bleProtocol_send("ERROR:STATE_LOCK"); return; }
+  g_opState.sessionId = command.sessionId;
+  g_opState.state = READY;
+  g_opState.ready = true;
+  g_opState.readyAtMs = millis();
+  g_opState.autenticado = true;
+  opStateUnlock();
 
   uint32_t sinceConnect = 0;
   bool mtuUpdated = false;
@@ -160,9 +198,14 @@ bool handleServeDuplicate(const ParsedCommand& command) {
   Serial.printf("[DUP] Duplicata detectada CMD_ID=%s\n", command.cmdId.c_str());
 
   if (isSessionMismatch(command, prior)) {
-    Serial.printf("[SEC] Session mismatch CMD_ID=%s\n", command.cmdId.c_str());
-    bleProtocol_send("ERROR:SESSION_MISMATCH");
-    return true;
+    Serial.printf("[SEC] Session mismatch no histórico: CMD_ID=%s prior=%s request=%s\n",
+                  command.cmdId.c_str(), String(prior.sessionId).c_str(), command.sessionId.c_str());
+    if (isLocalSession(command.sessionId) || isLocalSession(String(prior.sessionId))) {
+      Serial.println("[SEC] Sessão local detectada, aceitando mismatch para fallback");
+    } else {
+      Serial.println("[SEC] WARN: mismatch, reusando histórico se disponível");
+      bleProtocol_send("WARN:SESSION_MISMATCH");
+    }
   }
 
   if (prior.done) {
@@ -184,10 +227,16 @@ bool handleServeDuplicate(const ParsedCommand& command) {
 }
 
 void handleServe(const ParsedCommand& command) {
-  if (hasActiveSessionMismatch(command)) {
-    Serial.printf("[SEC] Session mismatch CMD_ID=%s\n", command.cmdId.c_str());
-    bleProtocol_send("ERROR:SESSION_MISMATCH");
-    return;
+  if (!canAcceptSession(command) && hasActiveSessionMismatch(command)) {
+    String currentSession;
+    if (opStateLock()) {
+      currentSession = g_opState.sessionId;
+      opStateUnlock();
+    }
+    Serial.printf("[SEC] SESSION_MISMATCH no RUNNING. CMD_ID=%s REQUEST=%s CURRENT=%s\n",
+                  command.cmdId.c_str(), command.sessionId.c_str(), currentSession.c_str());
+    bleProtocol_send("WARN:SESSION_MISMATCH");
+    // Não retorna para não bloquear; continua para BUSY e guardas.
   }
 
   if (!requireReadyGuard(command)) {
@@ -204,13 +253,15 @@ void handleServe(const ParsedCommand& command) {
 
   if (!opStateLock()) { bleProtocol_send("ERROR:STATE_LOCK"); return; }
 
-  if (g_opState.state != IDLE) {
+  if (g_opState.state != IDLE && g_opState.state != READY) {
     opStateUnlock();
+    Serial.printf("[SERVE] Estado não permite novo SERVE: %d\n", g_opState.state);
     bleProtocol_send("ERROR:BUSY");
     return;
   }
 
   g_opState.state = RUNNING;
+  g_opState.ready = false;
   g_opState.currentCmdId = command.cmdId;
   g_opState.sessionId = command.sessionId;
   opStateUnlock();
@@ -239,11 +290,12 @@ void handleServe(const ParsedCommand& command) {
 
 void handleStop(const ParsedCommand& command) {
   if (hasActiveSessionMismatch(command)) {
-    Serial.printf("[SEC] Session mismatch CMD_ID=%s\n", command.cmdId.c_str());
-    bleProtocol_send("ERROR:SESSION_MISMATCH");
-    return;
+    Serial.printf("[SEC] Session mismatch no STOP CMD_ID=%s\n", command.cmdId.c_str());
+    bleProtocol_send("WARN:SESSION_MISMATCH");
+    // Não bloquear stop; garantir seguro.
   }
-  Serial.printf("[STOP] Parada solicitada. CMD: %s\n", command.cmdId.c_str());
+  Serial.printf("[STOP] Parada solicitada. CMD: %s SESSION=%s\n",
+                command.cmdId.c_str(), command.sessionId.c_str());
   valveController_stop(command.cmdId, command.sessionId);
 }
 

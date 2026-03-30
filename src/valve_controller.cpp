@@ -30,6 +30,8 @@ void resetOperationalStateLocked() {
   g_opState.sessionId = "";
   g_opState.currentCmdId = "";
   g_opState.state = IDLE;
+  g_opState.ready = false;
+  g_opState.autenticado = true; // mantém autenticação de sessão para reconexão, mas não permite novo SERVE sem READY
 }
 
 void clearRequestLocked() {

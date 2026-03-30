@@ -9,7 +9,9 @@
 
 enum State {
   IDLE = 0,
-  RUNNING = 1
+  READY = 1,
+  RUNNING = 2,
+  ERROR = 3
 };
 
 struct OperationState {

@@ -37,6 +37,10 @@ void setConnectionState(bool connected) {
     return;
   }
   g_opState.bleConectado = connected;
+  Serial.printf("[BLE] Connection state changed: %s | opState=%d | session=%s\n",
+                connected ? "CONNECTED" : "DISCONNECTED",
+                g_opState.state,
+                g_opState.sessionId.c_str());
   if (!connected) {
     g_opState.lastDisconnectMs = millis();
     if (g_opState.state == RUNNING) {

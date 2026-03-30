@@ -110,7 +110,12 @@ void handleAuth(const ParsedCommand& command) {
   g_opState.readyAtMs = millis();
   opStateUnlock();
 
-  Serial.printf("[AUTH] v%s Autenticado. Session: %s\n", FW_VERSION, command.sessionId.c_str());  // v2.1.0: Android recebe versao do firmware no AUTH_OK para exibir no display  // Formato: AUTH_OK|<cmdId>|<sessionId>|FW:2.1.0|BUILD:Mar 29 2026  String authReply = makeReply("AUTH_OK", command.cmdId, command.sessionId);  authReply += String("|FW:") + FW_VERSION + "|BUILD:" + FW_BUILD_DATE;  Serial.printf("[AUTH] Enviando: %s\n", authReply.c_str());  bleProtocol_send(authReply);
+  Serial.printf("[AUTH] v%s Autenticado. Session: %s\n",
+                FW_VERSION, command.sessionId.c_str());
+  String authReply = makeReply("AUTH_OK", command.cmdId, command.sessionId);
+  authReply += String("|FW:") + FW_VERSION + "|BUILD:" + FW_BUILD_DATE;
+  Serial.printf("[AUTH] Enviando: %s\n", authReply.c_str());
+  bleProtocol_send(authReply);
 }
 
 void handlePing(const ParsedCommand& command) {

@@ -73,6 +73,7 @@ void enqueueIncomingLine(const String& line) {
   }
 
   Serial.printf("RX: %s\n", trimmed.c_str());
+  Serial.printf("[BLE] Comando recebido, enfileirando\n");
   if (!cmdQueue_enqueue(trimmed)) {
     bleProtocol_send("ERROR:QUEUE_FULL");
   }

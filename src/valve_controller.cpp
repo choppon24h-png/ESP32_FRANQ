@@ -224,7 +224,7 @@ void taskDispensacao(void* param) {
         break;
       }
 
-            // v2.1.0 FIX: so verifica timeout de fluxo APOS FLOW_MIN_OPEN_MS (10s).
+      // v2.1.0 FIX: so verifica timeout de fluxo APOS FLOW_MIN_OPEN_MS (10s).
       // Garante tempo de pressurizacao da tubulacao antes de considerar
       // que o barril esta vazio ou ha entupimento.
       const uint32_t elapsedMs = millis() - startMs;
@@ -251,6 +251,7 @@ void taskDispensacao(void* param) {
     finalizeDispense(local, actualMl, !abortedByDisconnect);
   }
 }
+
 
 
 

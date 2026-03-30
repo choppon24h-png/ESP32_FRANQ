@@ -200,6 +200,7 @@ void taskDispensacao(void* param) {
     // Loop principal de dispensaÃ§Ã£o por sensor de fluxo
     while (true) {
       vTaskDelay(pdMS_TO_TICKS(DISPENSE_LOOP_DELAY_MS));
+      taskYIELD();  // v2.2.0: cede CPU ao BLE stack no C3 single-core
 
       if (xSemaphoreTake(g_dispenseMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
         stopped = g_request.stopRequested;

@@ -5,6 +5,7 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <esp_gatts_api.h>
+#include <esp_gap_ble_api.h>
 #include <esp_mac.h>
 
 #include "command_queue.h"
@@ -95,11 +96,31 @@ class ServerCallbacks : public BLEServerCallbacks {
     g_advBackoffMs = BLE_ADV_BACKOFF_START_MS;
     g_advPending = false;
     Serial.println("DEVICE CONNECTED");
+    Serial.printf("[BLE] Firmware v%s (build %s %s)\n",
+                  FW_VERSION, FW_BUILD_DATE, FW_BUILD_TIME);
   }
 
   void onConnect(BLEServer* server, esp_ble_gatts_cb_param_t* param) {
-    (void)param;
-    onConnect(server);
+    (void)server;
+    if (param) {
+      setConnectionState(true);
+      g_advBackoffMs = BLE_ADV_BACKOFF_START_MS;
+      g_advPending = false;
+      Serial.println("DEVICE CONNECTED");
+      Serial.printf("[BLE] Firmware v%s (build %s %s)\n",
+                    FW_VERSION, FW_BUILD_DATE, FW_BUILD_TIME);
+
+      esp_ble_conn_update_params_t conn_params = {};
+      memcpy(conn_params.bda, param->connect.remote_bda, sizeof(esp_bd_addr_t));
+      conn_params.min_int = 0x18;   // 30ms
+      conn_params.max_int = 0x28;   // 50ms
+      conn_params.latency = 0;
+      conn_params.timeout = 0x320;  // 800 * 10ms = 8000ms
+      esp_ble_gap_update_conn_params(&conn_params);
+      Serial.println("[BLE] Conn params: interval=30-50ms timeout=8000ms");
+    } else {
+      onConnect(server);
+    }
   }
 
   void onDisconnect(BLEServer* server) override {

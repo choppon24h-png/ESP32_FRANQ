@@ -8,7 +8,10 @@
 // Historico:
 //   2.0.0 - versao base
 //   2.1.0 - FIX valvula abre/fecha, BLE reconexao ACKED, timeouts
-#define FW_VERSION    "2.1.0"
+//   2.2.0 - FIX: supervision timeout 5s->8s para ESP32-C3 single-core
+//           FIX: taskYIELD no loop de dispensacao para liberar BLE
+//           FIX: DISPENSE_LOOP_DELAY_MS 20ms->50ms
+#define FW_VERSION    "2.2.0"
 #define FW_BUILD_DATE __DATE__
 #define FW_BUILD_TIME __TIME__
 
@@ -48,7 +51,7 @@
 // ============================================================
 // CONFIGURACOES DE DISPENSACAO
 // ============================================================
-#define DISPENSE_LOOP_DELAY_MS     20UL
+#define DISPENSE_LOOP_DELAY_MS     50UL  // v2.2.0: 50ms dá mais tempo ao BLE no C3 single-core
 #define DISPENSE_TIMEOUT_MS        30000UL  // 30s timeout absoluto de seguranca
 #define DISPENSE_TIME_FOR_300ML_MS 8000UL   // v2.1.0 FIX: era 2000UL
 

@@ -109,8 +109,7 @@ void handleAuth(const ParsedCommand& command) {
   g_opState.readyAtMs = millis();
   opStateUnlock();
 
-  Serial.printf("[AUTH] Autenticado. Session: %s\n", command.sessionId.c_str());
-  bleProtocol_send(makeReply("AUTH_OK", command.cmdId, command.sessionId));
+  Serial.printf("[AUTH] v%s Autenticado. Session: %s\\n", FW_VERSION, command.sessionId.c_str());\r\n  // v2.1.0: Android recebe versao do firmware no AUTH_OK para exibir no display\r\n  // Formato: AUTH_OK|<cmdId>|<sessionId>|FW:2.1.0|BUILD:Mar 29 2026\r\n  String authReply = makeReply("AUTH_OK", command.cmdId, command.sessionId);\r\n  authReply += String("|FW:") + FW_VERSION + "|BUILD:" + FW_BUILD_DATE;\r\n  bleProtocol_send(authReply);
 }
 
 void handlePing(const ParsedCommand& command) {
@@ -221,9 +220,7 @@ void handleServe(const ParsedCommand& command) {
     return;
   }
 
-  cmdHistory_markPending(command.cmdId, command.sessionId);
-  bleProtocol_send(String("ACK|") + command.cmdId);
-  abrirValvula();
+  // v2.1.0 FIX: abrirValvula() ANTES de markPending.\r\n  // taskDispensacao (prio 4) inicia imediatamente apos startDispensacao().\r\n  // Valvula deve estar aberta antes do loop de fluxo comecar a contar pulsos.\r\n  abrirValvula();\r\n  cmdHistory_markPending(command.cmdId, command.sessionId);\r\n  bleProtocol_send(String("ACK|") + command.cmdId);
 
   Serial.printf("[SERVE] Iniciado: %u ml | CMD: %s | SESSION: %s\n",
                 requestedMl, command.cmdId.c_str(), command.sessionId.c_str());
@@ -308,6 +305,7 @@ void taskCommandProcessor(void* param) {
     else bleProtocol_send("ERROR:UNKNOWN_COMMAND");
   }
 }
+
 
 
 

@@ -224,15 +224,15 @@ void taskDispensacao(void* param) {
         break;
       }
 
-      // Timeout de fluxo: sensor parou de pulsar (barril vazio ou entupimento)
-      // FIX: Só verifica timeout APÓS 10s de válvula aberta E após pulsos reais.
-      // Isso dá tempo para pressurização inicial da tubulação de chopp.
+      // v2.1.0 FIX: so verifica timeout de fluxo APOS FLOW_MIN_OPEN_MS (10s).
+      // Garante tempo de pressurizacao da tubulacao antes de considerar
+      // que o barril esta vazio ou ha entupimento.
       const uint32_t elapsedMs = millis() - startMs;
-      const bool passedMinOpenTime = (elapsedMs >= FLOW_MIN_OPEN_MS);
-      if (passedMinOpenTime && flowSensor_getPulsos() > 5 && flowSensor_isTimeout()) {
+      if (elapsedMs >= FLOW_MIN_OPEN_MS && flowSensor_getPulsos() > 5 && flowSensor_isTimeout()) {
         actualMl = flowSensor_getMl();
         flowTimeout = true;
-        Serial.printf("[FLOW] Timeout de fluxo — barril vazio? Dispensado: %u ml\n", actualMl);
+        Serial.printf("[FLOW] v2.1.0 Timeout fluxo (elapsed=%lums) Dispensado: %u ml\n",
+                      (unsigned long)elapsedMs, actualMl);
         break;
       }
     }
@@ -251,5 +251,7 @@ void taskDispensacao(void* param) {
     finalizeDispense(local, actualMl, !abortedByDisconnect);
   }
 }
+
+
 
 

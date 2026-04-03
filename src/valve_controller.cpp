@@ -242,7 +242,7 @@ void taskDispensacao(void* param) {
         Serial.printf("[VALVE] STATUS elapsed=%lums ml=%u/%u pulsos=%u\n",
                       (unsigned long)elapsedMs, currentMl_log, local.targetMl, pulsos_log);
         if (bleProtocol_isConnected()) {
-          bleProtocol_send(String("VP:") + String(currentMl_log) + "|" + String(local.targetMl));
+          bleProtocol_send(String("VP:") + String(currentMl_log));
         }
       }
 

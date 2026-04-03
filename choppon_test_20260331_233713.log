@@ -1,0 +1,111 @@
+23:37:13.833  Using proactor: IocpProactor
+23:37:13.885  =================================================================
+23:37:13.889    CHOPPON — TESTE MANUAL DE DISPENSAÇÃO BLE
+23:37:13.906  =================================================================
+23:37:13.918    MAC ESP32:       DC:B4:D9:99:3B:96
+23:37:13.920    Volume:          300ml
+23:37:13.938    Session ID:      SES_TEST_1033
+23:37:13.950    HMAC Key:        Choppon103614@
+23:37:13.956    Log salvo em:    choppon_test_20260331_233713.log
+23:37:13.964  =================================================================
+23:37:13.967  Escaneando por DC:B4:D9:99:3B:96...
+23:37:19.059  Received E2:BB:9E:85:DA:9F: .
+23:37:19.451  Received E2:BB:9E:85:DA:9F: L3250 Series.
+23:37:20.434  Received E2:BB:9E:85:DA:9F: .
+23:37:20.444  Received E2:BB:9E:85:DA:9F: L3250 Series.
+23:37:20.502  Received 08:15:7B:E9:2E:48: .
+23:37:20.504  Received 08:15:7B:E9:2E:48: .
+23:37:20.613  Received 0A:6D:62:05:46:F6: .
+23:37:20.615  Received 0A:6D:62:05:46:F6: .
+23:37:20.616  Received E2:BB:9E:85:DA:9F: .
+23:37:20.838  Received E2:BB:9E:85:DA:9F: L3250 Series.
+23:37:20.856  Received 6F:75:3E:5D:41:17: .
+23:37:20.870  Received 6F:75:3E:5D:41:17: .
+23:37:20.887  Received E2:BB:9E:85:DA:9F: .
+23:37:20.910  Received E2:BB:9E:85:DA:9F: L3250 Series.
+23:37:20.999  Received 0A:6D:62:05:46:F6: .
+23:37:21.000  Received 0A:6D:62:05:46:F6: .
+23:37:21.018  Received E2:BB:9E:85:DA:9F: .
+23:37:21.036  Received E2:BB:9E:85:DA:9F: L3250 Series.
+23:37:21.055  Received 08:15:7B:E9:2E:48: .
+23:37:21.166  Received 08:15:7B:E9:2E:48: .
+23:37:21.175  Received 0A:6D:62:05:46:F6: .
+23:37:21.241  Received 0A:6D:62:05:46:F6: .
+23:37:21.242  Received CF:95:1D:12:F1:77: .
+23:37:21.243  Received E2:BB:9E:85:DA:9F: .
+23:37:21.596  Received E2:BB:9E:85:DA:9F: L3250 Series.
+23:37:21.599  Received 6F:75:3E:5D:41:17: .
+23:37:21.818  Received 6F:75:3E:5D:41:17: .
+23:37:21.835  Received E2:BB:9E:85:DA:9F: .
+23:37:21.846  Received E2:BB:9E:85:DA:9F: L3250 Series.
+23:37:21.910  Received E2:BB:9E:85:DA:9F: .
+23:37:21.911  Received E2:BB:9E:85:DA:9F: L3250 Series.
+23:37:21.912  Received E2:BB:9E:85:DA:9F: .
+23:37:22.213  Received E2:BB:9E:85:DA:9F: L3250 Series.
+23:37:22.305  Received E2:BB:9E:85:DA:9F: .
+23:37:22.307  Received E2:BB:9E:85:DA:9F: L3250 Series.
+23:37:22.663  Received 0A:6D:62:05:46:F6: .
+23:37:22.676  Received E2:BB:9E:85:DA:9F: .
+23:37:22.747  Received E2:BB:9E:85:DA:9F: L3250 Series.
+23:37:22.796  Received 6F:75:3E:5D:41:17: .
+23:37:22.798  Received 6F:75:3E:5D:41:17: .
+23:37:22.806  Received E2:BB:9E:85:DA:9F: .
+23:37:22.886  Received E2:BB:9E:85:DA:9F: L3250 Series.
+23:37:22.950  Received 0A:6D:62:05:46:F6: .
+23:37:23.011  Received 0A:6D:62:05:46:F6: .
+23:37:23.266  Received 6F:75:3E:5D:41:17: .
+23:37:23.270  Received 6F:75:3E:5D:41:17: .
+23:37:23.330  Received E2:BB:9E:85:DA:9F: .
+23:37:23.333  Received E2:BB:9E:85:DA:9F: L3250 Series.
+23:37:23.432  Received 0A:6D:62:05:46:F6: .
+23:37:23.442  Received 0A:6D:62:05:46:F6: .
+23:37:23.573  Received 6F:75:3E:5D:41:17: .
+23:37:23.574  Received 6F:75:3E:5D:41:17: .
+23:37:23.575  Received 08:15:7B:E9:2E:48: .
+23:37:23.960  Received 08:15:7B:E9:2E:48: .
+23:37:24.096  Received E2:BB:9E:85:DA:9F: .
+23:37:24.132  Received E2:BB:9E:85:DA:9F: L3250 Series.
+23:37:24.315  Received CF:95:1D:12:F1:77: .
+23:37:24.316  Received E2:BB:9E:85:DA:9F: .
+23:37:24.317  Received E2:BB:9E:85:DA:9F: L3250 Series.
+23:37:26.112  Received 6F:75:3E:5D:41:17: .
+23:37:26.113  Received 6F:75:3E:5D:41:17: .
+23:37:27.497  Received 08:15:7B:E9:2E:48: .
+23:37:27.503  Received 08:15:7B:E9:2E:48: .
+23:37:27.782  Received E2:BB:9E:85:DA:9F: .
+23:37:28.151  Received E2:BB:9E:85:DA:9F: L3250 Series.
+23:37:28.160  Received 6F:75:3E:5D:41:17: .
+23:37:28.882  Received 6F:75:3E:5D:41:17: .
+23:37:28.894  Received E2:BB:9E:85:DA:9F: .
+23:37:29.468  Received E2:BB:9E:85:DA:9F: L3250 Series.
+23:37:29.472  Received E2:BB:9E:85:DA:9F: .
+23:37:29.692  Received E2:BB:9E:85:DA:9F: L3250 Series.
+23:37:29.882  Received 08:15:7B:E9:2E:48: .
+23:37:29.961  Received 08:15:7B:E9:2E:48: .
+23:37:29.962  Received E2:BB:9E:85:DA:9F: .
+23:37:29.963  Received E2:BB:9E:85:DA:9F: L3250 Series.
+23:37:30.126  Received 10:7B:93:E2:17:21: Mibro Watch GS Explorer.
+23:37:30.261  Received E2:BB:9E:85:DA:9F: .
+23:37:30.381  Received E2:BB:9E:85:DA:9F: L3250 Series.
+23:37:30.558  Received 08:15:7B:E9:2E:48: .
+23:37:30.707  6 devices found. Watcher status: <BluetoothLEAdvertisementWatcherStatus.STOPPED: 3>.
+23:37:30.849  Received 08:15:7B:E9:2E:48: .
+23:37:30.977  Received E2:BB:9E:85:DA:9F: .
+23:37:31.032  Received E2:BB:9E:85:DA:9F: L3250 Series.
+23:37:31.132  Received 08:15:7B:E9:2E:48: .
+23:37:31.250  Received 08:15:7B:E9:2E:48: .
+23:37:31.341  Received 6F:75:3E:5D:41:17: .
+23:37:31.463  Received 6F:75:3E:5D:41:17: .
+23:37:31.566  Received E2:BB:9E:85:DA:9F: .
+23:37:31.700  Received E2:BB:9E:85:DA:9F: L3250 Series.
+23:37:31.799  Received 08:15:7B:E9:2E:48: .
+23:37:31.907  Received 08:15:7B:E9:2E:48: .
+23:37:32.009  Received E2:BB:9E:85:DA:9F: .
+23:37:32.097  ❌ Dispositivo DC:B4:D9:99:3B:96 não encontrado
+23:37:32.097  Encerrando — dispositivo não encontrado.
+23:37:32.098  Dica: verifique se o ESP32 está ligado e o MAC está correto.
+23:37:32.098  Received E2:BB:9E:85:DA:9F: L3250 Series.
+23:37:32.099  Received 0A:6D:62:05:46:F6: .
+23:37:32.100  Received 0A:6D:62:05:46:F6: .
+23:37:32.100  Received E2:BB:9E:85:DA:9F: .
+23:37:32.142  Received E2:BB:9E:85:DA:9F: L3250 Series.

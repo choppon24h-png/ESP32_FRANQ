@@ -56,14 +56,14 @@
 // CONFIGURACOES DE DISPENSACAO
 // ============================================================
 #define DISPENSE_LOOP_DELAY_MS     100UL  // v2.3.0: 100ms libera mais CPU ao BLE no C3 single-core
-#define DISPENSE_TIMEOUT_MS        30000UL  // 30s timeout absoluto de seguranca
+#define DISPENSE_TIMEOUT_MS        40000UL  // 40s timeout absoluto de seguranca
 #define DISPENSE_TIME_FOR_300ML_MS 8000UL   // v2.1.0 FIX: era 2000UL
 
 // ============================================================
 // CONFIGURACOES DO SENSOR DE FLUXO
 // ============================================================
-#define FLOW_NO_PULSE_TIMEOUT_MS   3000UL  // v2.1.0 FIX: era 3000UL
-#define FLOW_MIN_OPEN_MS           2000UL  // v2.3.1 FIX: 2s minimo aberta antes de checar sensor
+#define FLOW_NO_PULSE_TIMEOUT_MS   10000UL  // Aumentado de 3s para 10s
+#define FLOW_MIN_OPEN_MS           5000UL   // Aumentado de 2s para 5s
 #define FLOW_PULSOS_POR_LITRO      450
 
 // ============================================================

@@ -18,7 +18,8 @@
 //   2.4.0 - FIX CRITICO: Forcar MAC BLE = MAC WiFi STA no boot (esp_iface_mac_addr_set).
 //           No ESP32-C3, o MAC BLE e MAC WiFi +2 no ultimo octeto, causando falha
 //           de conexao GATT (status 133) pois o Android conecta pelo MAC WiFi do banco.
-#define FW_VERSION    "2.4.0"
+//   2.4.1 - FIX: Removido esp_ble_gap_update_conn_params do operaBLE.cpp que forçava timeout=5s
+#define FW_VERSION    "2.4.1"
 #define FW_BUILD_DATE __DATE__
 #define FW_BUILD_TIME __TIME__
 

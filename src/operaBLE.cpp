@@ -132,15 +132,12 @@
             //   antes de declarar o dispositivo perdido.
             //   Isso é suficiente para sobreviver a picos de carga no ESP32.
             // -----------------------------------------------------------------
-            esp_ble_conn_update_params_t conn_params = {};
-            memcpy(conn_params.bda, param->connect.remote_bda, sizeof(esp_bd_addr_t));
-            conn_params.min_int = 0x06;   // 7.5ms
-            conn_params.max_int = 0x06;   // 7.5ms
-            conn_params.latency = 0;      // sem slave latency
-            conn_params.timeout = 0x1F4;  // 5000ms supervision timeout
-            esp_ble_gap_update_conn_params(&conn_params);
+            // v2.4.1 FIX: Removido esp_ble_gap_update_conn_params daqui.
+            // O Android (BluetoothServiceIndustrial) já negocia a prioridade BALANCED
+            // que estabelece um timeout de ~20s. Forçar 5s (0x1F4) aqui estava
+            // sobrescrevendo a negociação do Android e causando o erro GATT 133.
 
-            DBG_PRINT(F("\n[BLE] Conectado — conn params: interval=7.5ms, latency=0, timeout=5000ms"));
+            DBG_PRINT(F("\n[BLE] Conectado — aguardando Android negociar conn params (BALANCED)"));
             DBG_PRINTF("\n[BLE] MAC remoto: %02X:%02X:%02X:%02X:%02X:%02X",
                 param->connect.remote_bda[0], param->connect.remote_bda[1],
                 param->connect.remote_bda[2], param->connect.remote_bda[3],

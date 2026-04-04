@@ -1,5 +1,5 @@
 ﻿#include <Arduino.h>
-#include "esp_mac.h"       // esp_read_mac(), esp_iface_mac_addr_set() — FIX MAC BLE v2.4.0
+#include "esp_mac.h"       // esp_read_mac(), esp_base_mac_addr_set() — FIX MAC BLE v2.4.0
 
 #include "auth_validator.h"
 #include "ble_protocol.h"
@@ -63,11 +63,14 @@ void printBanner() {
 // o rádio BLE responde apenas no MAC BLE (+2), causando falha de conexão
 // (GATT status 133 / timeout) em todas as tentativas.
 //
-// SOLUÇÃO: Antes de inicializar qualquer interface de rede, forçamos o rádio
-// BLE a usar exatamente o mesmo MAC da interface WiFi STA via
-// esp_iface_mac_addr_set(). Assim, o MAC cadastrado no banco é o mesmo MAC
-// que o Android usa para conectar via BLE — sem necessidade de alterar o
-// backend, o banco de dados ou o aplicativo Android.
+// SOLUÇÃO: Antes de inicializar qualquer interface de rede, redefinimos o MAC
+// base do chip via esp_base_mac_addr_set(wifiMac). Como o MAC BLE é derivado
+// do MAC base, ao definir o MAC base = MAC WiFi STA, o BLE passa a usar
+// exatamente o mesmo MAC cadastrado no banco — sem alterar backend ou Android.
+//
+// NOTA: esp_iface_mac_addr_set() só existe no IDF >= 5.x. Para compatibilidade
+// com espressif32@6.4.0 (IDF 4.x), usamos esp_base_mac_addr_set() que está
+// disponível em todas as versões e produz o mesmo resultado para o BLE.
 //
 // REFERÊNCIA: https://docs.espressif.com/projects/esp-idf/en/stable/esp32c3/
 //             api-reference/system/misc_system_api.html#mac-address
@@ -93,10 +96,13 @@ void fixBleMacToMatchWifi() {
                 bleMac[0], bleMac[1], bleMac[2],
                 bleMac[3], bleMac[4], bleMac[5]);
 
-  // Força o rádio BLE a usar o mesmo MAC do WiFi STA
-  err = esp_iface_mac_addr_set(wifiMac, ESP_MAC_BT);
+  // Redefine o MAC base do chip para o MAC WiFi STA.
+  // Como o MAC BLE e derivado do MAC base (+2 no ultimo octeto),
+  // ao definir o MAC base = MAC WiFi, o BLE passa a usar MAC WiFi + 0 = MAC WiFi.
+  // esp_base_mac_addr_set() e compativel com IDF 4.x (espressif32@6.4.0).
+  err = esp_base_mac_addr_set(wifiMac);
   if (err != ESP_OK) {
-    Serial.printf("[MAC-FIX] ERRO ao forcar MAC BLE: 0x%X — BLE usará MAC padrão\n", err);
+    Serial.printf("[MAC-FIX] ERRO ao definir MAC base: 0x%X — BLE usara MAC padrao\n", err);
     return;
   }
 

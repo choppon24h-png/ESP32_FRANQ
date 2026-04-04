@@ -1,4 +1,5 @@
 ﻿#include <Arduino.h>
+#include "esp_mac.h"       // esp_read_mac(), esp_iface_mac_addr_set() — FIX MAC BLE v2.4.0
 
 #include "auth_validator.h"
 #include "ble_protocol.h"
@@ -53,6 +54,59 @@ void printBanner() {
   Serial.println();
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// fixBleMacToMatchWifi()
+//
+// PROBLEMA: No ESP32-C3, o MAC BLE é derivado do MAC base com incremento +2
+// no último octeto. O banco de dados (chopponERP) armazena o MAC WiFi (STA).
+// O Android tenta conectar via BLE usando o MAC WiFi cadastrado no banco, mas
+// o rádio BLE responde apenas no MAC BLE (+2), causando falha de conexão
+// (GATT status 133 / timeout) em todas as tentativas.
+//
+// SOLUÇÃO: Antes de inicializar qualquer interface de rede, forçamos o rádio
+// BLE a usar exatamente o mesmo MAC da interface WiFi STA via
+// esp_iface_mac_addr_set(). Assim, o MAC cadastrado no banco é o mesmo MAC
+// que o Android usa para conectar via BLE — sem necessidade de alterar o
+// backend, o banco de dados ou o aplicativo Android.
+//
+// REFERÊNCIA: https://docs.espressif.com/projects/esp-idf/en/stable/esp32c3/
+//             api-reference/system/misc_system_api.html#mac-address
+// ─────────────────────────────────────────────────────────────────────────────
+void fixBleMacToMatchWifi() {
+  uint8_t wifiMac[6] = {0};
+  uint8_t bleMac[6]  = {0};
+
+  // Lê o MAC WiFi STA (o MAC cadastrado no banco de dados)
+  esp_err_t err = esp_read_mac(wifiMac, ESP_MAC_WIFI_STA);
+  if (err != ESP_OK) {
+    Serial.printf("[MAC-FIX] ERRO ao ler MAC WiFi: 0x%X — BLE usará MAC padrão\n", err);
+    return;
+  }
+
+  // Lê o MAC BLE atual (antes da correção) para fins de log
+  esp_read_mac(bleMac, ESP_MAC_BT);
+
+  Serial.printf("[MAC-FIX] MAC WiFi STA : %02X:%02X:%02X:%02X:%02X:%02X\n",
+                wifiMac[0], wifiMac[1], wifiMac[2],
+                wifiMac[3], wifiMac[4], wifiMac[5]);
+  Serial.printf("[MAC-FIX] MAC BLE orig : %02X:%02X:%02X:%02X:%02X:%02X\n",
+                bleMac[0], bleMac[1], bleMac[2],
+                bleMac[3], bleMac[4], bleMac[5]);
+
+  // Força o rádio BLE a usar o mesmo MAC do WiFi STA
+  err = esp_iface_mac_addr_set(wifiMac, ESP_MAC_BT);
+  if (err != ESP_OK) {
+    Serial.printf("[MAC-FIX] ERRO ao forcar MAC BLE: 0x%X — BLE usará MAC padrão\n", err);
+    return;
+  }
+
+  // Confirma o MAC BLE após a correção
+  esp_read_mac(bleMac, ESP_MAC_BT);
+  Serial.printf("[MAC-FIX] MAC BLE fixo : %02X:%02X:%02X:%02X:%02X:%02X  OK\n",
+                bleMac[0], bleMac[1], bleMac[2],
+                bleMac[3], bleMac[4], bleMac[5]);
+}
+
 }  // namespace
 
 void setup() {
@@ -60,6 +114,14 @@ void setup() {
   delay(250);
 
   printBanner();
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // v2.4.0 FIX: Forçar MAC BLE = MAC WiFi STA ANTES de qualquer inicialização
+  // de interface de rede. Resolve a falha de conexão GATT (status 133)
+  // causada pela diferença de +2 no último octeto entre MAC WiFi e MAC BLE
+  // no ESP32-C3. O Android conecta via BLE usando o MAC WiFi do banco de dados.
+  // ─────────────────────────────────────────────────────────────────────────
+  fixBleMacToMatchWifi();
 
   // Mutex global de estado
   g_opStateMutex = xSemaphoreCreateMutex();

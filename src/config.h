@@ -15,7 +15,10 @@
 //           FIX: DISPENSE_LOOP_DELAY_MS 50ms->100ms + yield duplo
 //           FIX: log periódico de status da válvula a cada 5s
 //   2.3.1 - FIX: Reduzido timeout de fluxo para 3s e tempo mínimo de abertura para 2s.
-#define FW_VERSION    "2.3.1"
+//   2.4.0 - FIX CRITICO: Forcar MAC BLE = MAC WiFi STA no boot (esp_iface_mac_addr_set).
+//           No ESP32-C3, o MAC BLE e MAC WiFi +2 no ultimo octeto, causando falha
+//           de conexao GATT (status 133) pois o Android conecta pelo MAC WiFi do banco.
+#define FW_VERSION    "2.4.0"
 #define FW_BUILD_DATE __DATE__
 #define FW_BUILD_TIME __TIME__
 

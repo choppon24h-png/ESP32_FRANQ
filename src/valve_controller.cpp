@@ -141,13 +141,13 @@ void valveController_abortFromBleDisconnect() {
     xSemaphoreGive(g_dispenseMutex);
   }
 
-  // Se estiver rodando, NÃO aborta. Deixa a taskDispensacao terminar o trabalho.
-  if (running) {
+  // Se estiver rodando OU a válvula estiver fisicamente aberta, NÃO aborta.
+  if (running || g_valveOpen) {
     Serial.println("[VALVE] BLE disconnect durante SERVE — IGNORANDO ABORT, mantendo valvula aberta");
     return;
   }
   
-  // Só fecha se realmente não estiver rodando
+  // Só fecha se realmente não estiver rodando e a válvula estiver fechada
   if (opStateLock()) {
     if (g_opState.state == RUNNING) {
       resetOperationalStateLocked();

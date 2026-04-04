@@ -114,14 +114,12 @@ class ServerCallbacks : public BLEServerCallbacks {
       Serial.printf("[BLE] Firmware v%s (build %s %s)\n",
                     FW_VERSION, FW_BUILD_DATE, FW_BUILD_TIME);
 
-      esp_ble_conn_update_params_t conn_params = {};
-      memcpy(conn_params.bda, param->connect.remote_bda, sizeof(esp_bd_addr_t));
-      conn_params.min_int = 0x18;   // 30ms
-      conn_params.max_int = 0x28;   // 50ms
-      conn_params.latency = 0;
-      conn_params.timeout = 0x320;  // 800 * 10ms = 8000ms
-      esp_ble_gap_update_conn_params(&conn_params);
-      Serial.println("[BLE] Conn params: interval=30-50ms timeout=8000ms");
+      // v2.4.2 FIX: Removido esp_ble_gap_update_conn_params daqui.
+      // O Android (BluetoothServiceIndustrial) negocia requestConnectionPriority(BALANCED)
+      // que define timeout ~20s. Forçar qualquer timeout aqui sobrescrevia essa negociação
+      // e causava desconexão (GATT status 133) durante a dispensação.
+      // O ESP32 agora aceita passivamente os parâmetros propostos pelo Android.
+      Serial.println("[BLE] Conectado — aguardando Android negociar conn params (BALANCED ~20s)");
     } else {
       onConnect(server);
     }

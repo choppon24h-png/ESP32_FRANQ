@@ -19,7 +19,9 @@
 //           No ESP32-C3, o MAC BLE e MAC WiFi +2 no ultimo octeto, causando falha
 //           de conexao GATT (status 133) pois o Android conecta pelo MAC WiFi do banco.
 //   2.4.1 - FIX: Removido esp_ble_gap_update_conn_params do operaBLE.cpp que forçava timeout=5s
-#define FW_VERSION    "2.4.1"
+//   2.4.2 - FIX CRITICO: Removido esp_ble_gap_update_conn_params do ble_protocol.cpp (arquivo ativo)
+//           que ainda sobrescrevia o timeout do Android após o fix 2.4.1 (errado arquivo)
+#define FW_VERSION    "2.4.2"
 #define FW_BUILD_DATE __DATE__
 #define FW_BUILD_TIME __TIME__
 

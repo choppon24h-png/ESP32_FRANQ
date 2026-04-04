@@ -8,6 +8,7 @@ namespace {
 
 volatile uint32_t g_pulseCount = 0;
 volatile uint32_t g_lastPulseMs = 0;
+uint32_t g_enabledAtMs = 0;  // v2.3.1 FIX: timestamp de quando o sensor foi habilitado
 bool g_enabled = false;
 uint32_t g_pulsosLitro = FLOW_PULSOS_POR_LITRO;
 
@@ -22,6 +23,7 @@ void flowSensor_init() {
   pinMode(PINO_SENSOR_FLUSO, INPUT_PULLUP);
   g_pulseCount = 0;
   g_lastPulseMs = 0;
+  g_enabledAtMs = 0;
   g_enabled = false;
   g_pulsosLitro = FLOW_PULSOS_POR_LITRO;
   Serial.printf("[FLOW] Sensor inicializado. Pino: %d, Pulsos/L: %u\n",
@@ -38,15 +40,17 @@ void flowSensor_reset() {
 void flowSensor_enable() {
   if (g_enabled) return;
   flowSensor_reset();
+  g_enabledAtMs = (uint32_t)millis();  // v2.3.1 FIX: marca o momento exato de habilitação
   attachInterrupt(digitalPinToInterrupt(PINO_SENSOR_FLUSO), flowISR, RISING);
   g_enabled = true;
-  Serial.println("[FLOW] Sensor habilitado");
+  Serial.printf("[FLOW] Sensor habilitado em t=%lu ms\n", (unsigned long)g_enabledAtMs);
 }
 
 void flowSensor_disable() {
   if (!g_enabled) return;
   detachInterrupt(digitalPinToInterrupt(PINO_SENSOR_FLUSO));
   g_enabled = false;
+  g_enabledAtMs = 0;
   Serial.println("[FLOW] Sensor desabilitado");
 }
 
@@ -73,8 +77,16 @@ uint32_t flowSensor_getUltimoPulsoMs() {
 bool flowSensor_isTimeout() {
   const uint32_t last = flowSensor_getUltimoPulsoMs();
   const uint32_t now = (uint32_t)millis();
-  // Só considera timeout se já passou tempo suficiente desde o início
-  if (now < FLOW_NO_PULSE_TIMEOUT_MS) return false;
+  // v2.3.1 FIX: usa tempo relativo ao momento de habilitação do sensor,
+  // não millis() global. O bug original usava "if (now < FLOW_NO_PULSE_TIMEOUT_MS)"
+  // que é sempre falso quando millis() > 10s (após o boot), fazendo o timeout
+  // disparar imediatamente se o último pulso foi há mais de 10s (ex: g_lastPulseMs=0
+  // após flowSensor_reset() quando millis() já é grande).
+  // A correção: só considera timeout se já passou FLOW_NO_PULSE_TIMEOUT_MS
+  // desde que o sensor foi habilitado para esta dispensação.
+  if (g_enabledAtMs == 0) return false;
+  const uint32_t sinceEnable = now - g_enabledAtMs;
+  if (sinceEnable < FLOW_NO_PULSE_TIMEOUT_MS) return false;
   return (now - last) >= FLOW_NO_PULSE_TIMEOUT_MS;
 }
 
